@@ -1,2 +1,2 @@
-# node-streaming-app
+# node-video-streaming-app
 This is video streaming application using NodeJS

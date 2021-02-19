@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body id="body">
+    <p class="display-3">Video chunk upload example</p>
+    <form>
+        <input type="file" name="videoFile" id="video-file" />
+        <button type="button" id="upload-btn">upload</button>
+
+    </form>
+    <script>
+        var uploadBtn = document.getElementById('upload-btn');
+        var videoFile = document.getElementById('video-file')
+
+        var chunkSize = 1024 * 1024; // 1MB
+
+        uploadBtn.addEventListener('click', (e) => {
+            var file = videoFile.files[0];
+
+            console.log(` filename : ${file.name}`);
+            console.log(` filesize : ${file.size}`);
+            console.log(` filetype : ${file.type}`);
+            console.log('Creating file chunk');
+            var offset = 0;
+            var start = 0;
+            var end = 0;
+            while (end <= file.size) {
+                start = offset * chunkSize;
+                end = start + chunkSize;
+                var chunk = file.slice(start, end);
+                // console.log(`Chunk => start: ${start}, end : ${end}, offset : ${offset}, size : ${chunk.size}`);
+                send({
+                    chunk: chunk,
+                    offset: offset,
+                    start: start,
+                    end: end
+                });
+                offset++;
+                break;
+            }
+
+        });
+
+
+        function send(data) {
+            var form = new FormData();
+            // form.append('chunk', data.chunk);
+            form.append('chunkId', data.offset);
+            form.append('start', data.start);
+            form.append('end', data.end);
+
+            var http = new XMLHttpRequest();
+
+            http.open('POST', '/video/chunk/save', true);
+            http.setRequestHeader('Content-Type', 'multipart/form-data');
+
+            http.send(form);
+
+            http.onreadystatechange = () => {
+                if (http.readyState === XMLHttpRequest.DONE) {
+                    var status = http.status;
+                    if (status === 0 || (status >= 200 && status < 400)) {
+                        console.log(http.responseText);
+                    } else {
+                        // Oh no! There has been an error with the request!
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

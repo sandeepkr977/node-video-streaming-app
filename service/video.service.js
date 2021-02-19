@@ -4,6 +4,7 @@ var md5 = require('md5');
 var path = require('path');
 let inspect = require('util').inspect;
 let cache = require('./cache.service');
+let { getDirSize } = require('./dir.service');
 
 let videoDataFile = __dirname + '/../data.json';
 
@@ -11,7 +12,7 @@ let videoDataFile = __dirname + '/../data.json';
 
 
 let uploadVideo = (req, res) => {
-    let folderSize = __dirname + '\\..\\VIDEOS';
+
     let date = new Date();
     let userId = "UID123"
     let folder = __dirname + "\\.." + "\\VIDEOS\\" + userId + "\\" + "Y" + date.getFullYear() + "\\" + "M" + date.getMonth() + "\\" + "D" + date.getDate();
@@ -54,6 +55,7 @@ let uploadVideo = (req, res) => {
             id: videoId,
             title: videoTitle
         })
+        res.header({ upload: true });
         res.writeHead(303, { Connection: 'close', Location: '/video/upload/success' });
         res.end()
     });
@@ -115,8 +117,19 @@ let getVideo = async(req, res) => {
 }
 
 let uploadVideoSuccess = (req, res) => {
+    res.header({ upload: true });
+    res.status(200);
     res.jsonp({
-        status: 'success'
+        status: 'success',
+        msg: 'File uploaded successfully.'
+    });
+}
+
+let uploadVideoError = (req, res) => {
+    res.status(400);
+    res.jsonp({
+        status: 'error',
+        msg: 'You upload file system size exceeded.'
     });
 }
 
@@ -140,6 +153,7 @@ module.exports = {
     streamVideo,
     getVideo,
     uploadVideoSuccess,
+    uploadVideoError,
     getVideoList,
     readVideos
 };

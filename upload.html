@@ -17,59 +17,185 @@
 </head>
 
 <body style="padding:10px 0px">
-
     <div class="container">
         <div class="row">
             <div class="col-md-12 pt-3 pb-3">
                 <h3>
                     <strong><span class="text-danger roboto">Fire</span class=" roboto">Stream </strong>
-                    <a href="/" class="btn btn-primary pull-right"><i class="fa fa-2x fa-play-circle" aria-hidden="true"></i> Play</a>
                 </h3>
             </div>
             <div class="col-md-12">
-                <div id="message"></div>
+
             </div>
         </div>
         <div class="row">
-            <div class="col-md-5">
-                <h2>Video Upload</h2>
-                <hr/>
-                <form>
-                    <input type="file" class="form-control-file mb-2" name="file" id="file" />
-                    <button type="button" class="btn btn-primary btn-sm" onclick="uploadVideo(this)"><i class="fa fa-cloud-upload" aria-hidden="true"></i> Upload</button>
-                </form>
+            <div class="col-md-6 ml-auto mr-auto">
+                <div class="display-4 mb-4">
+                    Upload video
+                    <hr/>
+                </div>
+                <div class="upload-form mb-2" id="upload-form-wrapper">
+                    <div id="message" class="mb-2"></div>
+                    <input type="file" class="form-control-file" id="video-file" />
+                    <div id="file-preview" class="mt-2">
+                    </div>
+                </div>
+                <div class="upload-button mb-4">
+                    <button type="button" class="btn btn-primary btn-block" id="upload-btn" style="display: none;">
+                        <i class="fa fa-cloud-upload" aria-hidden="true"></i>
+                        Upload
+                    </button>
+                </div>
+                <div class="upload-progress  mb-2" id="progress-counter-wrapper" style="display: none;">
+                    <div style="border-radius: 2px;border:1px solid blue;overflow-x: hidden;">
+                        <div id="progress-counter" style="text-align: center;width:0%;background-color: blue;transition: all .6s ease;color: white;">0%</div>
+                    </div>
+                    <p style="text-align: center;" class="mt-2"><span class='btn btn-outline-primary btn-sm' onclick="removeFile()">New Upload</span></p>
+                </div>
+                <div class="upload-progress  mb-2 mt-2">
+                    <hr/>
+                    <a href="/" class="btn btn-default btn-block text-info">Go to home...</a>
+                </div>
             </div>
         </div>
     </div>
 
 
 
+    <!-- bootstrap -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+
     <script>
-        async function uploadVideo(e) {
-            document.getElementById("message").innerHTML = '';
-            let fileInput = document.getElementById("file");
-            let file = fileInput.files[0];
-            console.log(file);
+        var upload = document.getElementById('upload-btn');
+        var fileList = document.getElementById('video-file');
+        var msgPlaceholder = document.getElementById("message");
+        var filePreview = document.getElementById('file-preview');
+        var progressCounter = document.getElementById('progress-counter');
+        var progressCounterWrapper = document.getElementById('progress-counter-wrapper');
+        var uploadFormWrapper = document.getElementById('video-file');
 
-            var form = new FormData();
-            form.append('file', file);
+        var request = new XMLHttpRequest();
+        var size = 0;
+        var maxSize = 1024 * 1024 * 200; // 200MB
 
-            let response = await fetch('/video/upload', {
-                method: 'post',
-                body: form
-            });
-
-            let result = await response.json();
-            if (result.status == 'success')
-                document.getElementById("message").innerHTML = "<p class='alert alert-success' align='center'>Video uploaded successfully.</p>"
+        var displayMesaage = (msg, type) => {
+            var label = ['danger', 'info', 'success', 'warning'];
+            if (label.includes(type))
+                msgPlaceholder.innerHTML = `<p role="alert" class='alert alert-dismissible alert-${type} fade show' align='center'>${msg}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </p>`;
             else
-                document.getElementById("message").innerHTML = "<p class='alert alert-danger' align='center'>Something went wrong!</p>"
-            fileInput.value = "";
+                msgPlaceholder.innerHTML = '';
+        }
 
-            console.log(result);
+        var showFilePreview = (file) => {
+            uploadFormWrapper.style.display = 'none';
+            upload.style.display = 'block';
+            filePreview.innerHTML = `
+                <div class="d-flex justify-content-start-end flex-row pt-1 border p-2 border">
+                    <div class="video-art d-flex justify-content-start flex-column">
+                        <span class="mr-2">
+                            <i class="fa fa-4x fa-play-circle" aria-hidden="true"></i>
+                        </span>
+                    </div>
+                    <div class="h4 flex-grow-1">
+                        <span style="font-size:12pt">${file.name} <br/> ${(file.size/(1024*1024)).toFixed(1)} MB </span>
+                    </div>
+                    <div class="close-btn">
+                        <i class="fa fa-times-circle" aria-hidden="true" onclick="removeFile()"></i>    
+                    </div>
+                </div>
+            `;
+        }
 
+        var removeFile = () => {
+            filePreview.innerHTML = '';
+            fileList.value = '';
+            uploadFormWrapper.style.display = 'block';
+            progressCounterWrapper.style.display = 'none';
+            upload.style.display = 'none';
 
         }
+
+        var updateProgressBar = (data) => {
+
+        }
+
+        request.upload.onprogress = (e) => {
+            progressCounterWrapper.style.display = 'block';
+
+            if (e.loaded >= size) {
+                fileList.value = '';
+                progressCounter.style.width = 100 + '%';
+                progressCounter.innerText = 100 + '%';
+            } else {
+                progressCounter.innerText = ((e.loaded / size) * 100).toFixed(2) + '%';
+                progressCounter.style.width = ((e.loaded / size) * 100).toFixed(2) + '%';
+            }
+        };
+
+        request.upload.onload = (e) => {};
+
+        request.upload.onloadstart = (e) => {
+            console.log(request.responseText);
+        };
+
+        request.upload.onloadend = (e) => {
+            console.log(request.responseText);
+        };
+
+        request.upload.onerror = (e) => {
+            console.log(request.responseText);
+        }
+
+        request.upload.ontimeout = (e) => {
+            console.log(request.responseText);
+        };
+
+        request.upload.onabort = (e) => {
+            console.log(request.responseText);
+        }
+
+        request.onreadystatechange = (e) => {
+            console.log(request.header)
+            if (e.target.status == 200) {
+                if (request.response != "")
+                    displayMesaage(JSON.parse(request.response).msg, 'success');
+            } else {
+                if (request.response != "")
+                    displayMesaage(JSON.parse(request.response).msg, 'danger');
+            }
+        }
+
+
+        fileList.addEventListener('change', (e) => {
+            displayMesaage('', 'erase');
+            progressCounterWrapper.style.display = 'none';
+            var files = e.target.files;
+            if (files.length > 1)
+                displayMesaage('You can upload only 1 document at a time.', 'danger')
+            else if (files.length == 0)
+                displayMesaage('Please select a video file', 'danger')
+            else if (files[0].size >= maxSize)
+                displayMesaage('Video file size exceded', 'danger');
+            else
+                showFilePreview(files[0]);
+        });
+
+        upload.addEventListener('click', (e) => {
+            upload.style.display = 'none';
+            request.open('POST', 'http://localhost:8888/video/upload', true);
+            var file = fileList.files[0];
+            var form = new FormData();
+            console.log(`file size : ${file}`);
+            size = file.size;
+            form.append('file', file);
+            request.send(form);
+        });
     </script>
 </body>
 
